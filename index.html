@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Монетка-тапалка</title>
+<style>
+:root{--bg:#fff8e7;--glow:#ffeaa8;--text:#3b2f10;--muted:#8a7a52;--card:rgba(255,255,255,.7);--line:rgba(180,140,40,.25);--acc:#f2a900;--edge:#b57a00;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#140f04;--glow:#3d2d06;--text:#fff3c4;--muted:#b9a76a;--card:rgba(255,255,255,.07);--line:rgba(255,215,100,.18);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#140f04;--glow:#3d2d06;--text:#fff3c4;--muted:#b9a76a;--card:rgba(255,255,255,.07);--line:rgba(255,215,100,.18);color-scheme:dark}
+html{height:100%}
+body{margin:0;min-height:100%;background:radial-gradient(120% 70% at 50% 0%,var(--glow),var(--bg) 65%) fixed;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center;gap:16px;padding:16px;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.tabs{display:flex;gap:4px;padding:4px;border-radius:999px;background:var(--card);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 2px 4px rgba(0,0,0,.08)}
+.tabs button{border:none;background:none;color:var(--muted);border-radius:999px;padding:9px 24px;font-size:15px;font-weight:700;cursor:pointer;transition:.2s}
+.tabs button.on{background:linear-gradient(180deg,#ffe07a,#f2a900);color:#3b2400;box-shadow:0 3px 0 var(--edge),0 6px 12px rgba(181,122,0,.3),inset 0 1px 0 rgba(255,255,255,.7)}
+.panel{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;max-width:420px}
+.panel[hidden]{display:none}
+.label{color:var(--muted);font-size:14px;text-align:center}
+.total{font-size:46px;font-weight:800;text-align:center;background:linear-gradient(180deg,#ffd54a,#e08a00);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 rgba(120,70,0,.3))}
+.stage{position:relative;width:min(56vw,230px);aspect-ratio:1;margin:6px 0 26px}
+.stage::after{content:"";position:absolute;left:10%;right:10%;bottom:-30px;height:20px;border-radius:50%;background:rgba(0,0,0,.3);filter:blur(9px);animation:sh 3.2s ease-in-out infinite}
+.float{width:100%;height:100%;animation:fl 3.2s ease-in-out infinite}
+@keyframes fl{50%{transform:translateY(-8px)}}
+@keyframes sh{50%{transform:scale(.82);opacity:.6}}
+#coin{display:block;width:100%;height:100%;padding:0;border:none;background:none;cursor:pointer;transform:perspective(600px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(var(--s,1));transition:transform .25s cubic-bezier(.2,1.5,.4,1)}
+#coin.down{--s:.95;transition:transform .06s}
+#face{position:absolute;inset:0;overflow:hidden;border-radius:50%;display:flex;align-items:center;justify-content:center;border:6px solid var(--e);font-size:clamp(44px,14vw,84px);font-weight:800;
+box-shadow:0 2px 0 var(--e),0 4px 0 var(--e),0 6px 0 var(--e),0 8px 0 var(--e),0 10px 0 var(--e),0 22px 28px rgba(0,0,0,.35),inset 0 5px 10px rgba(255,255,255,.65),inset 0 -10px 16px rgba(0,0,0,.22);text-shadow:0 2px 0 rgba(255,255,255,.5),0 -1px 0 rgba(0,0,0,.2)}
+#face::before{content:"";position:absolute;inset:11%;border-radius:50%;border:3px solid rgba(255,255,255,.5);box-shadow:inset 0 3px 5px rgba(0,0,0,.2),0 2px 3px rgba(255,255,255,.3)}
+#face::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.6) 50%,transparent 62%) 150% 0/250% 100% no-repeat;animation:sh2 4s ease-in-out infinite}
+@keyframes sh2{0%,55%{background-position:150% 0}100%{background-position:-60% 0}}
+#face.spin{animation:spin .45s ease-out}
+@keyframes spin{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}
+#val{position:relative;z-index:1}
+#badge{position:absolute;top:9%;left:50%;transform:translateX(-50%);font-size:.3em;z-index:1}
+.bar{width:100%;height:16px;border-radius:999px;background:var(--card);border:1px solid var(--line);overflow:hidden;box-shadow:inset 0 3px 5px rgba(0,0,0,.15)}
+.bar i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.55),transparent 55%),linear-gradient(90deg,#ffd54a,#f2a900);transition:width .2s}
+button.up{width:100%;background:linear-gradient(180deg,#ffe07a,#f2a900);color:#3b2400;border:none;border-radius:18px;padding:15px 16px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 5px 0 var(--edge),0 12px 20px rgba(181,122,0,.3),inset 0 2px 0 rgba(255,255,255,.7);transition:transform .08s,box-shadow .08s}
+button.up:disabled{filter:grayscale(.7) opacity(.55);cursor:not-allowed}
+button.up:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 var(--edge),0 4px 8px rgba(181,122,0,.3),inset 0 2px 0 rgba(255,255,255,.7)}
+button.reset{background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:8px 18px;font-size:14px;cursor:pointer}
+.row{display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:12px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 10px 24px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.5)}
+.mini{width:50px;height:50px;border-radius:50%;border:4px solid;display:flex;align-items:center;justify-content:center;font-size:22px;flex:none;box-shadow:0 4px 0 rgba(0,0,0,.25),inset 0 3px 4px rgba(255,255,255,.6)}
+.row .t{flex:1;text-align:left}
+.row .t b{display:block;font-size:16px}
+.row .t span{color:var(--muted);font-size:13px}
+.row button{border:none;border-radius:14px;padding:10px 14px;font-weight:800;font-size:14px;background:linear-gradient(180deg,#ffe07a,#f2a900);color:#3b2400;cursor:pointer;box-shadow:0 3px 0 var(--edge),inset 0 1px 0 rgba(255,255,255,.7)}
+.row button:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
+.row button:disabled{filter:grayscale(.7) opacity(.55);cursor:default}
+.pop{position:fixed;pointer-events:none;font-weight:800;font-size:26px;color:#f2a900;animation:up .8s ease-out forwards;text-shadow:0 2px 3px rgba(0,0,0,.35);white-space:nowrap}
+@keyframes up{to{transform:translateY(-90px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.float,.stage::after,#face::after,#face.spin{animation:none}}
+.tabs button{padding:9px 13px;font-size:14px}
+.list{display:flex;flex-direction:column;gap:10px;width:100%}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
+#modal[hidden]{display:none}
+.mc{background:var(--bg);border:1px solid var(--line);border-radius:24px;padding:28px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.big{font-size:84px;line-height:1.1;filter:drop-shadow(0 8px 10px rgba(0,0,0,.3))}
+.big.shake{animation:shk .5s linear infinite}
+.big.pop2{animation:pp .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes shk{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+@keyframes pp{from{transform:scale(.2)}to{transform:scale(1)}}
+.mc h3{margin:8px 0 4px;font-size:22px}
+.mc p{margin:0 0 16px;color:var(--muted)}
+.row[data-chest]{cursor:pointer}
+.mc{max-height:85vh;overflow:auto}
+.drops{display:flex;flex-direction:column;gap:6px;margin:12px 0;text-align:left}
+.dr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:14px}
+.dr b{white-space:nowrap}
+.mc .reset{margin-top:10px}
+.tabs{gap:2px;max-width:100%}
+.tabs button{padding:8px 9px;font-size:13px;position:relative}
+.tabs button.dot::after{content:"";position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#e63946;box-shadow:0 0 0 2px var(--bg)}
+.combo{width:100%;height:34px;opacity:0;transition:opacity .2s;text-align:center;font-weight:800;color:var(--acc)}
+.cbar{height:6px;border-radius:99px;background:var(--card);overflow:hidden;margin-top:4px}
+.cbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff7a18,#ffd54a)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;width:100%}
+.dchip{display:flex;flex-direction:column;align-items:center;padding:8px 0;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:12px}
+.dchip span{font-size:20px}
+.dchip.done{opacity:.45}
+.dchip.now{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}
+.tabs{overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;width:100%}
+.chips button{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:12px;padding:8px 12px;font-weight:700;font-size:14px;cursor:pointer}
+.chips button.on{background:linear-gradient(180deg,#ffe07a,#f2a900);color:#3b2400;border-color:var(--acc)}
+.pill{padding:4px 10px;border-radius:999px;font-size:13px;font-weight:700;background:var(--card);border:1px solid var(--line)}
+.pill.w{color:#2e9e4f}.pill.l{color:#d9534f}.pill.j{color:#9b5de5}
+#pc{width:100%;max-width:360px;aspect-ratio:320/340;border-radius:20px;background:var(--card);border:1px solid var(--line);box-shadow:0 10px 24px rgba(0,0,0,.12)}
+#toasts{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:20;pointer-events:none;padding:0 12px}
+.toast{pointer-events:auto;display:flex;align-items:center;gap:12px;max-width:360px;width:100%;box-sizing:border-box;padding:12px 14px;border-radius:18px;background:var(--bg);border:2px solid var(--acc);box-shadow:0 12px 30px rgba(0,0,0,.35);font-size:14px;cursor:pointer;animation:tin .35s cubic-bezier(.2,1.4,.4,1);transition:opacity .4s,transform .4s}
+.toast span{font-size:30px}
+.toast.out{opacity:0;transform:translateY(-20px)}
+@keyframes tin{from{transform:translateY(-30px);opacity:0}}
+#amodal{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:30;padding:20px}
+#amodal[hidden]{display:none}
+#amc{border:2px solid var(--acc)}
+.rv{position:relative;overflow:hidden;width:100%;height:124px;margin:14px 0 8px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+.rv::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:3px;margin-left:-1.5px;background:#ff3b3b;box-shadow:0 0 10px #ff3b3b;z-index:2}
+.rv::before{content:"";position:absolute;top:-1px;left:50%;margin-left:-8px;border:8px solid transparent;border-top-color:#ff3b3b;z-index:3}
+.rs{display:flex;position:absolute;left:0;top:0;height:100%;will-change:transform}
+.ti{flex:none;width:90px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-right:1px solid var(--line);border-bottom:5px solid #888;font-size:11px;line-height:1.2;text-align:center;padding:4px}
+.ti span{font-size:38px}
+.ti.k-c{border-bottom-color:#9aa0a6}.ti.k-b{border-bottom-color:#3b8eea}.ti.k-s{border-bottom-color:#9b5de5}.ti.k-u{border-bottom-color:#ff4fd8}
+.ti.win{background:linear-gradient(180deg,transparent,rgba(255,213,74,.4));box-shadow:inset 0 0 0 2px var(--acc)}
+.tabs{touch-action:pan-y;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;cursor:grab}
+#flash{position:fixed;inset:0;pointer-events:none;z-index:25;opacity:0}
+#flash.f1{background:radial-gradient(circle,rgba(255,213,74,.9),transparent 70%);animation:fo .6s ease-out}
+#flash.f2{background:radial-gradient(circle,rgba(209,123,255,.95),rgba(255,213,74,.45) 60%,transparent 85%);animation:fo 1.2s ease-out}
+@keyframes fo{from{opacity:.75}to{opacity:0}}
+@media (prefers-reduced-motion:reduce){#flash{display:none}}
+#upP{background:linear-gradient(180deg,#e6b3ff,#9b5de5);color:#fff;box-shadow:0 5px 0 #5a2a9e,0 12px 20px rgba(110,50,180,.3),inset 0 2px 0 rgba(255,255,255,.5)}
+#mch{width:100%;aspect-ratio:320/180;border-radius:20px;background:var(--card);border:1px solid var(--line);box-shadow:0 10px 24px rgba(0,0,0,.12)}
+.mprice{display:flex;align-items:baseline;flex-wrap:wrap;justify-content:center;gap:4px 12px;font-size:26px;font-weight:800;text-align:center}
+.mprice span{font-size:14px;font-weight:700}
+.up2{color:#2e9e4f}.dn2{color:#d9534f}
+.chips button:disabled{opacity:.45;cursor:not-allowed}
+.rb{font-size:10px;font-weight:800;color:#fff;padding:2px 7px;border-radius:999px;vertical-align:middle;margin-left:4px}
+.mi{display:flex;gap:6px;width:100%}
+.mi input{flex:1;min-width:0;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:15px}
+.mi button{border:none;border-radius:12px;padding:10px 12px;font-weight:800;font-size:13px;background:linear-gradient(180deg,#ffe07a,#f2a900);color:#3b2400;cursor:pointer;box-shadow:0 3px 0 var(--edge)}
+.mi button:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
+.qhead{display:flex;justify-content:space-between;align-items:baseline;width:100%;font-weight:800;margin-bottom:6px}
+.qt{color:var(--muted);font-weight:600;font-size:13px}
+</style>
+</head>
+<body>
+<div class="tabs" id="tabs"><button class="on" data-t="game">Игра</button><button data-t="bst">Бусты</button><button data-t="chs">Сундуки</button><button data-t="skn">Скины</button><button data-t="rew">Награды</button><button data-t="plk">Плинко</button><button data-t="mkt">Биржа</button><button data-t="set">⚙️</button></div>
+<div class="panel" id="game">
+  <div><div class="label">Всего заработано</div><div class="total" id="total">0</div></div>
+  <div class="stage"><div class="float"><button id="coin" aria-label="Монетка"><span id="face"><span id="badge"></span><span id="val">1</span></span></button></div></div>
+  <div class="combo" id="cmb"><span id="ctext"></span><div class="cbar"><i id="cfill"></i></div></div>
+  <div class="bar" title="До следующего улучшения номинала"><i id="fill"></i></div>
+  <div class="label" id="info"></div>
+  <div class="label" id="act"></div>
+  <button class="up" id="upV"></button>
+  <button class="up" id="upC"></button>
+  <button class="up" id="upA"></button>
+  <button class="up" id="upP"></button>
+  <button class="reset" id="reset">Сначала</button>
+</div>
+<div class="panel" id="bst" hidden><div class="label">Временные усиления: максимум 2 одновременно, у каждого есть перезарядка. Цена растёт вместе с номиналом</div><div class="list" id="bl"></div></div>
+<div class="panel" id="chs" hidden><div class="label">Нажми на сундук, чтобы увидеть, что в нём и с каким шансом</div><div class="label">Сколько сундуков открыть за раз</div><div class="chips" id="cnum"></div><div class="list" id="cl"></div></div>
+<div class="panel" id="skn" hidden><div class="label">Бонусы скина действуют, пока он надет. Чем выше редкость, тем сложнее получить.</div><div class="label" id="skinfo"></div><div class="list" id="list"></div></div>
+<div class="panel" id="rew" hidden><div class="chips" id="rsub"></div><div class="panel" id="rs1"><div class="label">Ежедневная награда: заходи каждый день, на 7-й день золотой сундук</div><div class="days" id="dl"></div><button class="up" id="dbtn" data-a="daily"></button></div><div class="panel" id="rs2" hidden><div class="label">Жетоны: <b id="tkb">0</b> 🎟️ · задания обновляются по таймеру</div><div id="ql" style="display:flex;flex-direction:column;gap:14px;width:100%"></div></div><div class="panel" id="rs3" hidden><div class="label" id="acnt">Достижения</div><div class="list" id="al"></div></div></div>
+<div class="panel" id="plk" hidden>
+  <div class="label">Баланс: <b id="pbal">0</b> 🪙</div>
+  <canvas id="pc" width="640" height="680"></canvas>
+  <div class="label">Центр выпадает чаще всего. Проигрыш примерно в 7 из 10 шариков, а ×25 бывает около 0,8%</div>
+  <div class="label">Ставка на шарик</div><div class="chips" id="pbet"></div><div class="chips" id="pq"></div>
+  <div class="label">Количество шариков</div><div class="chips" id="pnum"></div>
+  <button class="up" id="pdrop" data-a="pd"></button>
+  <div class="label" id="psum"></div>
+  <div class="chips" id="plr"></div>
+</div>
+<div class="panel" id="mkt" hidden>
+  <div class="label">Баланс: <b id="mbal">0</b> 🪙 · комиссия <b id="mfee">1%</b> с каждой сделки</div>
+  <div class="chips" id="mcs"></div>
+  <div class="mprice"><b id="mpx"></b><span id="mchg"></span></div>
+  <canvas id="mch" width="640" height="360"></canvas>
+  <div class="label" id="mpos"></div>
+  <div class="label">Купить (доля баланса)</div><div class="chips" id="mbuy"></div>
+  <div class="label">Продать (доля позиции)</div><div class="chips" id="msell"></div>
+  <div class="label">Своя сумма</div>
+  <div class="mi"><input id="mbi" type="text" inputmode="decimal" placeholder="Сумма в 🪙"><button data-a="mba">Купить на сумму</button></div>
+  <div class="mi"><input id="msi" type="text" inputmode="decimal" placeholder="Кол-во монеты"><button data-a="msq">Продать</button><button data-a="msc">Продать на 🪙</button></div>
+  <div class="label" id="mmsg"></div>
+  <div class="label">Цены обновляются каждые ~2,5 с. Бывают резкие скачки и коррекции рынка, так что можно и прогореть.</div>
+</div>
+<div class="panel" id="set" hidden><div class="label">Звуки</div><div class="list" id="sl"></div><div class="label">Статистика</div><div class="list" id="stl"></div></div>
+<div id="amodal" hidden><div class="mc" id="amc"></div></div>
+<div id="flash"></div><div id="toasts"></div>
+<div id="modal" hidden><div class="mc" id="mc"></div></div>
+<script>
+var RN=['Обычный','Редкий','Эпический','Легендарный','Мифический'],RC=['#8a94a0','#3b8eea','#9b5de5','#f2a900','#ff4fd8'];
+function mkSk(a,r,p,bn,x){x=x||{};return{id:a[0],n:a[1],c1:a[2],c2:a[3],e:a[4],t:a[5],b:a[6],r:r,p:p,bn:bn,ch:bn.jp||0,tk:x.tk||0,uc:x.uc||'',ua:x.ua||'',mul:x.mul||0}}
+var SK=[
+mkSk(['classic','Классика','#ffd54a','#f2a900','#b57a00','#5a3a00',''],0,0,{}),
+mkSk(['autumn','Осенний','#ffb36b','#d9531e','#8a2f0a','#4a1700','🍂'],0,3000,{inc:.03}),
+mkSk(['winter','Зимний','#f0faff','#7fc4ee','#3d82ad','#14425e','❄️'],0,4000,{cb:.2}),
+mkSk(['summer','Летний','#9ff5e1','#17b8a6','#0b7a70','#04403a','☀️'],0,5000,{lk:1}),
+mkSk(['spring','Весенний','#ffd1e8','#ff7eb6','#b83a79','#5c1238','🌸'],0,6000,{inc:.02,jp:1}),
+mkSk(['candy','Конфетный','#ffe0f0','#ff5fa2','#c2185b','#5c0a30','🍬'],1,60000,{inc:.05,jp:1.5}),
+mkSk(['forest','Лесной','#b9f6a8','#3fa34d','#1f6b2b','#0b3512','🌲'],1,90000,{lk:2,inc:.04}),
+mkSk(['desert','Пустынный','#ffe2a8','#e0a458','#9a6a2a','#4a2f0e','🏜️'],1,120000,{au:.1,cb:.1}),
+mkSk(['ocean','Океанский','#a8e6ff','#1e88e5','#0d4f9a','#06284f','🌊'],1,160000,{tr:.2,inc:.05}),
+mkSk(['pirate','Пиратский','#d9c7a0','#7a5230','#3e2813','#fff1d0','🏴‍☠️'],2,0,{inc:.08,pk:.03}),
+mkSk(['neon','Неоновый','#e0b0ff','#7c4dff','#3a1a9e','#1a0b4d','💜'],2,0,{cb:.25,jp:2}),
+mkSk(['lava','Вулканический','#ffcf70','#ff4d1c','#8b1a00','#3d0900','🌋'],2,0,{inc:.1,tr:.25}),
+mkSk(['cyber','Киберпанк','#9ffcff','#00b3c6','#006e7a','#00282e','🤖'],2,0,{tr:.35,lk:2,au:.1}),
+mkSk(['plinko','Шарик-мастер','#f0c8ff','#8e44ad','#4a1a6b','#ffffff','🔮'],2,0,{pk:.08,jp:2},{uc:'plinko'}),
+mkSk(['quest','Охотник за заданиями','#ffd7a0','#e67e22','#8a4308','#3d1d00','🎟️'],2,0,{inc:.06,au:.15,lk:1},{tk:120}),
+mkSk(['space','Космический','#b7c0ff','#2b2f77','#10123a','#e3e6ff','🚀'],3,0,{inc:.15,lk:3,jp:3}),
+mkSk(['rainbow','Радужный','#fff7a8','#ff7ad9','#7a3bd1','#3a0d63','🌈'],3,0,{inc:.12,pk:.06,cb:.3}),
+mkSk(['gold','Золотой король','#fff3b0','#e0a800','#8a6200','#4a3300','👑'],3,0,{inc:.18,jp:3,au:.15},{ua:'ze2'}),
+mkSk(['star','Звёздный','#ffffff','#6fa8ff','#2c55b8','#0b1f5c','⭐'],3,0,{inc:.2,lk:3,cb:.3},{uc:'star'}),
+mkSk(['tycoon','Биржевой магнат','#c8ffd9','#1fa85a','#0d6633','#032b14','💹'],3,0,{tr:.6,inc:.12,au:.2},{uc:'tycoon'}),
+mkSk(['ultra','Абсолют','#ffffff','#d17bff','#7a1fd6','#2a0050','✨'],4,0,{jp:2,lk:4},{mul:10}),
+mkSk(['void','Бездна','#a98bff','#1a0b3d','#0a0420','#e6d9ff','🌌'],4,0,{inc:.25,lk:4,cb:.4,tr:.5,au:.25},{tk:3000})
+];
+var SKM={};SK.forEach(function(k){SKM[k.id]=k});
+var B=[
+{id:'b1',i:'⚡',n:'Монеты ×1,5',s:'Все монеты ×1,5',d:30,cd:90,c:100,e:{cm:1.5}},
+{id:'b2',i:'🔥',n:'Монеты ×2',s:'Все монеты ×2',d:20,cd:150,c:300,e:{cm:2}},
+{id:'b3',i:'🍀',n:'Удача',s:'Шанс бонуса +15%',d:30,cd:90,c:200,e:{cc:15}},
+{id:'b4',i:'💎',n:'Супербонус',s:'Бонус ×8 вместо ×5',d:30,cd:120,c:400,e:{bm:8}},
+{id:'b5',i:'🎰',n:'Джекпот-лихорадка',s:'Шанс джекпота ×2',d:30,cd:150,c:500,e:{jm:2}},
+{id:'b6',i:'👑',n:'Мега-тап',s:'Каждый тап даёт бонус',d:8,cd:180,c:600,e:{cc:100}},
+{id:'b7',i:'🌟',n:'Золотая лихорадка',s:'Монеты ×2,5 и шанс +10%',d:12,cd:240,c:1000,e:{cm:2.5,cc:10}}
+];
+var BM={};B.forEach(function(b){BM[b.id]=b});
+var C=[
+{id:'wood',e:'🪵',n:'Деревянный сундук',d:'Монеты, усиления, обычные скины',p:150,w:[60,38],pool:['autumn','winter','summer','spring']},
+{id:'silver',e:'🥈',n:'Серебряный сундук',d:'Монеты, усиления, редкие скины',p:800,w:[50,42],pool:['candy','forest','desert','ocean']},
+{id:'gold',e:'🥇',n:'Золотой сундук',d:'Эпические скины (только отсюда)',p:4000,w:[40,45],pool:['pirate','neon','lava','cyber']},
+{id:'diamond',e:'💎',n:'Алмазный сундук',d:'Легендарные скины и 0,5% на ✨ Абсолют',p:20000,w:[35,45],u:0.5,pool:['space','rainbow','neon','lava']}
+];
+var CM={};C.forEach(function(c){CM[c.id]=c});
+function fresh(){return{value:1,total:0,crit:0,own:['classic'],skin:'classic',bo:{},st:{taps:0,jp:0,ch:0,bb:0,mc:0,earned:0,pb:0,mk:0,mw:0,mb:0,mr:0,mv:0,pj:0,pw:0,qd:0},ach:{},daily:{last:'',streak:0},set:{all:true,sj:true,sb:true,sp:true,sl:true,st:true,su:true,sr:true,sk:true,vb:true},nt:{},auto:0,lt:0,fr:0,bc:{},tk:0,q:{},ld:'',stars:0,pc:0,run:0,mk:{hist:{},h:{},sel:'ROCK'}}}
+var S=fresh(),cur='game',busy=false,combo=0,lastTap=0;
+try{var s=JSON.parse(localStorage.getItem('coin-clicker-4')||'null');if(s&&s.value>0)S=merge(fresh(),s)}catch(e){}
+function save(){try{localStorage.setItem('coin-clicker-4',JSON.stringify(S))}catch(e){}}
+function skin(){return SKM[S.skin]||SK[0]}
+function costV(){var v=S.value;return Math.round(12*Math.pow(v,2.2)*Math.pow(1.12,v-1))}
+var MAXCH=40,JP=40;
+function costC(){var n=S.crit;return Math.round(40*Math.pow(1.22,n)*(1+n*.3))}
+function chance(){return 9+S.crit}
+function f(n){return n.toLocaleString('ru-RU')}
+function fx(){var r={cm:prm(S.stars||0)*(1+bonus('inc')),cc:0,bm:5,jm:1},now=Date.now();
+  B.forEach(function(b){if((S.bo[b.id]||0)>now){var e=b.e;if(e.cm)r.cm*=e.cm;if(e.cc)r.cc+=e.cc;if(e.bm)r.bm=Math.max(r.bm,e.bm);if(e.jm)r.jm*=e.jm}});return r}
+var $=function(i){return document.getElementById(i)};
+function today(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+function dayNum(s){var a=s.split('-');return Math.round(Date.UTC(+a[0],+a[1]-1,+a[2])/864e5)}
+function dstate(){var t=today(),l=S.daily.last,cs=0,cl=l===t;
+  if(cl||(l&&dayNum(t)-dayNum(l)===1))cs=S.daily.streak;
+  if(cs>=7&&!cl)cs=0;
+  return{cs:cs,claimed:cl,next:cl?0:cs+1}}
+function rl(r){var a=[];if(r.c)a.push('+'+f(r.c)+' 🪙');if(r.tk)a.push('+'+r.tk+' 🎟️');if(r.sk)a.push(SKM[r.sk].b+' скин');if(r.ch)a.push(CM[r.ch].e+' сундук');return a.join(' ')}
+function reward(r){snd('sr');rareFx(r);modal('<div class="big pop2">'+r.e+'</div><h3>'+r.t+'</h3><p>'+r.s+'</p><button class="up" id="ok">Круто</button>');$('ok').onclick=function(){$('modal').hidden=true;render();if(aq.length&&!aOpen)aNext()}}
+var A=[
+['a1','👆','Первые шаги','Сделай 100 тапов',100,function(){return S.st.taps},{c:100}],
+['a2','🖐️','Тапер','Сделай 1 000 тапов',1000,function(){return S.st.taps},{ch:'wood'}],
+['a3','💥','Мастер тапов','Сделай 10 000 тапов',10000,function(){return S.st.taps},{ch:'silver'}],
+['a4','🎰','Первый джекпот','Поймай джекпот',1,function(){return S.st.jp},{c:300}],
+['a5','🍀','Любимчик удачи','Поймай 25 джекпотов',25,function(){return S.st.jp},{ch:'gold'}],
+['a6','🔥','Разгон','Набери комбо 20',20,function(){return S.st.mc},{c:200}],
+['a7','⚡','Неудержимый','Набери комбо 50',50,function(){return S.st.mc},{ch:'silver'}],
+['a8','📦','Любитель сундуков','Открой 5 сундуков',5,function(){return S.st.ch},{c:400}],
+['a9','🗝️','Кладоискатель','Открой 25 сундуков',25,function(){return S.st.ch},{ch:'gold'}],
+['a10','🪙','Крупный номинал','Подними номинал до 10',10,function(){return S.value},{ch:'silver'}],
+['a11','🎨','Модник','Собери 5 скинов',5,function(){return S.own.length-1},{ch:'silver'}],
+['a12','👗','Гардероб','Собери 10 скинов',10,function(){return S.own.length-1},{ch:'gold'}],
+['a13','🧪','Алхимик','Купи 10 бустов',10,function(){return S.st.bb},{c:500}],
+['a14','💰','Миллионер','Заработай 1 000 000 монет',1000000,function(){return S.st.earned},{ch:'diamond'}],
+['a15','⭐','Звёздный путь','Сделай престиж',1,function(){return S.pc},{ch:'gold'}],
+['a16','📈','Биржевой волк','Заработай на бирже 10 000 монет',10000,function(){return S.st.mk},{ch:'silver'}]
+].map(function(a){return{id:a[0],i:a[1],n:a[2],d:a[3],t:a[4],g:a[5],r:a[6]}});
+var G={taps:function(){return S.st.taps},mc:function(){return S.st.mc},jp:function(){return S.st.jp},ch:function(){return S.st.ch},val:function(){return S.value},pc:function(){return S.pc},earned:function(){return S.st.earned},mk:function(){return S.st.mk},mw:function(){return S.st.mw},mb:function(){return S.st.mb},mr:function(){return S.st.mr},mv:function(){return S.st.mv},pb:function(){return S.st.pb},pj:function(){return S.st.pj},pw:function(){return S.st.pw},sk:function(){return S.own.length-1},rs:function(){return SK.filter(function(s){return s.r>=3&&S.own.indexOf(s.id)>-1}).length},qd:function(){return S.st.qd}};
+var FAM=[
+['zt','👆',['Тапер-марафонец','Тапер-легенда','Тапер-бог'],'Сделай {n} тапов','taps',[50000,250000,1000000],[{ch:'gold'},{tk:25},{ch:'diamond'}]],
+['zc','🔥',['Комбо-мастер','Комбо-титан','Комбо-бог'],'Набери комбо {n}','mc',[100,200,400],[{ch:'silver'},{ch:'gold'},{tk:30}]],
+['zj','🎰',['Азартный','Везунчик','Король джекпотов'],'Поймай {n} джекпотов','jp',[100,500,2000],[{ch:'gold'},{tk:25},{ch:'diamond'}]],
+['zk','📦',['Сундучный маньяк','Властелин сундуков','Хранитель сокровищ'],'Открой {n} сундуков','ch',[100,500,2000],[{ch:'gold'},{ch:'diamond'},{tk:40}]],
+['zv','🪙',['Номинал 25','Номинал 50','Номинал 100'],'Подними номинал до {n}','val',[25,50,100],[{ch:'gold'},{ch:'diamond'},{tk:40}]],
+['zp','♻️',['Круговорот','Вечный цикл','Мастер престижа'],'Сделай {n} престижей','pc',[3,5,10],[{ch:'gold'},{tk:30},{ch:'diamond'}]],
+['ze','💰',['Мультимиллионер','Стомиллионер','Миллиардер'],'Заработай {n} монет','earned',[10000000,100000000,1000000000],[{ch:'diamond'},{sk:'gold'},{tk:100}]],
+['zm','📈',['Первые барыши','Профи биржи','Биржевая акула'],'Заработай на бирже {n} монет','mk',[1000,100000,1000000],[{c:500},{ch:'gold'},{ch:'diamond'}]],
+['zw','💹',['Первая прибыльная сделка','Серия прибыльных сделок','Трейдер-ветеран'],'Закрой {n} прибыльных сделок','mw',[1,25,100],[{c:1000},{ch:'silver'},{ch:'gold'}]],
+['zb','🚀',['Хороший вход','Удвоение','Ракета'],'Закрой сделку с прибылью {n}%','mb',[25,100,300],[{ch:'silver'},{ch:'gold'},{tk:30}]],
+['zr','🌊',['Поймал волну','Поймал ракету'],'Поймай рост на {n}% за один шаг, держа монету','mr',[15,30],[{ch:'silver'},{ch:'gold'}]],
+['zf','💼',['Инвестор','Крупный инвестор','Магнат'],'Собери портфель на {n} 🪙','mv',[50000,500000,5000000],[{ch:'silver'},{ch:'gold'},{ch:'diamond'}]],
+['zl','🔮',['Плинко-новичок','Плинко-фанат','Плинко-маньяк'],'Брось {n} шариков в Плинко','pb',[100,1000,10000],[{c:300},{ch:'silver'},{ch:'gold'}]],
+['zx','🎯',['Попадание','Меткий шарик','Король Плинко'],'Попади в ×25 в Плинко {n} раз','pj',[1,10,50],[{ch:'gold'},{ch:'diamond'},{tk:60}]],
+['zy','🏅',['Крупный выигрыш','Огромный выигрыш'],'Выиграй за один шарик {n} 🪙','pw',[10000,1000000],[{ch:'silver'},{ch:'diamond'}]],
+['zs','🎨',['Коллекционер','Страж гардероба','Полная коллекция'],'Собери {n} скинов','sk',[10,15,21],[{ch:'gold'},{tk:40},{ch:'diamond'}]],
+['zq','👑',['Редкая находка','Редкая коллекция','Легенды'],'Собери {n} легендарных или мифических скинов','rs',[1,3,5],[{ch:'gold'},{ch:'diamond'},{tk:100}]],
+['zd','📋',['Исполнитель','Охотник за заданиями','Мастер заданий'],'Выполни {n} заданий','qd',[10,50,200],[{tk:10},{ch:'gold'},{tk:120}]]
+];
+FAM.forEach(function(F){F[5].forEach(function(t,i){A.push({id:F[0]+(i+1),i:F[1],n:F[2][i],d:F[3].replace('{n}',f(t)),t:t,g:G[F[4]],r:F[6][i]})})});
+var AM={};A.forEach(function(x){AM[x.id]=x});
+function toast(x){var d=document.createElement('div');d.className='toast';
+  d.innerHTML='<span>🏆</span><div><b>Достижение выполнено!</b><br>'+x.n+' · награда: '+rl(x.r)+'</div>';
+  d.onclick=function(){d.remove();document.querySelector('#tabs button[data-t="rew"]').click()};
+  $('toasts').appendChild(d);snd('sr','a');
+  setTimeout(function(){d.classList.add('out');setTimeout(function(){d.remove()},400)},4500)}
+var aq=[],aOpen=false,SPIN_MS=6400;
+function aShow(x){aq.push(x);if(!aOpen)aNext()}
+function aNext(){var x=aq.shift();
+  if(!x){aOpen=false;$('amodal').hidden=true;return}
+  aOpen=true;snd('sr','a');
+  $('amc').innerHTML='<div class="big pop2">🏆</div><h3>Достижение выполнено!</h3><p><b>'+x.n+'</b><br>'+x.d+'<br>Награда: '+rl(x.r)+'</p><button class="up" id="aok">Забрать награду</button><button class="reset" id="alt">Позже</button>';
+  $('amodal').hidden=false;
+  $('aok').onclick=function(){aClaim(x)};$('alt').onclick=aNext}
+function aClaim(x){$('amodal').hidden=true;aOpen=false;
+  if(S.ach[x.id]||x.g()<x.t){aNext();return}
+  S.ach[x.id]=1;var r2=giveR(x.r,x.n);
+  render();save();reward(r2)}
+function kindOf(r){return r.k||'s'}
+function fillTile(c){var r=Math.random()*100,w=cw(c);
+  if(c.u&&Math.random()*100<2)return{e:'✨',t:'Абсолют',k:'u'};
+  if(r<w[0])return{e:'🪙',t:'Монеты',k:'c'};
+  if(r<w[0]+w[1]){var b=B[Math.floor(Math.random()*B.length)];return{e:b.i,t:b.n,k:'b'}}
+  var id=c.pool[Math.floor(Math.random()*c.pool.length)];return{e:SKM[id].b,t:'Скин «'+SKM[id].n+'»',k:'s'}}
+function rouletteStart(c,res,fast,lab){
+  var N=46,W=36+Math.floor(Math.random()*6),TW=90,h='',t0=performance.now();
+  for(var i=0;i<N;i++){var t=i===W?{e:res.e,t:res.t,k:kindOf(res)}:fillTile(c);h+='<div class="ti k-'+t.k+'"><span>'+t.e+'</span>'+t.t+'</div>'}
+  modal('<h3>'+c.n+(lab?' · '+lab:'')+'</h3><div class="rv"><div class="rs" id="rs">'+h+'</div></div><p>Крутим…</p>'+(fast?'<button class="reset" id="skp">Пропустить</button>':''));
+  $('mc').style.maxWidth='420px';
+  var s=$('rs'),vw=s.parentNode.clientWidth,end=-(W*TW+TW/2+(Math.random()-.5)*50-vw/2),last=-1,lt=0;
+  s.style.transform='translateX(0)';void s.offsetWidth;
+  s.style.transition='transform '+(fast?2.4:5.6)+'s cubic-bezier(.1,.65,.1,1)';s.style.transform='translateX('+end+'px)';
+  (function tk(){var tx=0,m=getComputedStyle(s).transform;if(m&&m!=='none')tx=parseFloat(m.split(',')[4]);
+    var idx=Math.floor((-tx+vw/2)/TW);
+    if(idx!==last){last=idx;var n=performance.now();if(n-lt>40){lt=n;snd('sk','t')}}
+    if(performance.now()-t0<(fast?2600:5800))requestAnimationFrame(tk)})();
+  setTimeout(function(){if(s.children[W])s.children[W].classList.add('win')},fast?2500:5700)}
+var cnum=1,mSkip=null;
+$('cnum').innerHTML=[1,2,5,10].map(function(v){return'<button data-a="cn" data-id="'+v+'">'+(v===1?'1 шт.':v+'×')+'</button>'}).join('');
+function chestGo(c){if(cnum>1)openMulti(c,cnum);else openChest(c)}
+function openMulti(c,n){var cost=c.p*n;if(busy||S.total<cost)return;busy=true;S.total-=cost;S.st.ch+=n;qAdd('chest',n);render();save();
+  var got=[],i=0,skip=false,tm=null;
+  function summary(){mSkip=null;var coins=0,dups=0,g={},k=[];
+    got.forEach(function(r){if(r.coins){coins+=r.coins;if(r.dup)dups++}else{var key=r.e+' '+r.t;if(!g[key]){g[key]=0;k.push(key)}g[key]++}});
+    var h=coins?'<div class="dr"><span>🪙 Монеты</span><b>+'+f(coins)+'</b></div>':'';if(dups)h+='<div class="dr"><span>🔁 Дубликаты скинов → монеты</span><b>×'+dups+'</b></div>';
+    k.forEach(function(key){h+='<div class="dr"><span>'+key+'</span><b>×'+g[key]+'</b></div>'});
+    snd('sk','b');if(got.some(function(r){return r.k==='u'}))juice(2);else if(got.some(function(r){return r.k==='s'}))juice(1);modal('<div class="big pop2">🎉</div><h3>Открыто сундуков: '+n+'</h3><div class="drops">'+h+'</div><button class="up" id="ok">Круто</button>');
+    $('ok').onclick=function(){$('modal').hidden=true;busy=false;render()}}
+  function next(){
+    if(i>=n){summary();return}
+    if(skip){while(i<n){got.push(roll(c));i++}render();save();summary();return}
+    var res=roll(c);got.push(res);i++;render();save();
+    snd('sk','a');rouletteStart(c,res,true,i+'/'+n);
+    $('skp').onclick=mSkip;
+    tm=setTimeout(next,3000)}
+  mSkip=function(){clearTimeout(tm);skip=true;next()};
+  next()}
+function merge(d,s){for(var k in s){if(d[k]&&typeof d[k]==='object'&&!Array.isArray(d[k])&&s[k]&&typeof s[k]==='object'&&!Array.isArray(s[k]))merge(d[k],s[k]);else d[k]=s[k]}return d}
+var lastPtr=0,lastSave=0,cbRun=false;
+document.addEventListener('pointerdown',function(){lastPtr=Date.now()},true);
+function juice(l){if(S.set.vb===false)return;
+  try{if(navigator.vibrate)navigator.vibrate(l>1?[60,50,60,50,140]:[30,40,40])}catch(e){}
+  var fl=$('flash');fl.className='';void fl.offsetWidth;fl.className='f'+l}
+function rareFx(r){if(!r)return;if(r.k==='u')juice(2);else if(r.k==='s')juice(1)}
+function costA(){return Math.round(120*Math.pow(1.4,S.auto)*(1+S.auto*.15))}
+function acps(n){return n*Math.max(1,Math.floor(S.value/2))}
+function prm(s){return 1+.15*s}
+function pgain(){return Math.floor(Math.sqrt((S.run||0)/100000))}
+function cps(){var x=fx(),k=skin();return acps(S.auto)*x.cm*(k.mul||1)*(1+bonus('au'))}
+function note(h){var d=document.createElement('div');d.className='toast';d.innerHTML=h;d.onclick=function(){d.remove()};$('toasts').appendChild(d);
+  setTimeout(function(){d.classList.add('out');setTimeout(function(){d.remove()},400)},3500)}
+function idle(){var now=Date.now(),dt=Math.min(now-(S.lt||now),28800000);S.lt=now;
+  if(S.auto>0&&dt>0){S.fr=(S.fr||0)+cps()*dt/1000;var g=Math.floor(S.fr);S.fr-=g;
+    if(g>0){S.total+=g;S.st.earned+=g;S.run+=g;qAdd('earn',g);if(dt>60000)note('<span>💤</span><div><b>Пока тебя не было</b><br>+'+f(g)+' 🪙 пассивного дохода</div>');return g}}
+  return 0}
+function lite(){$('total').textContent=f(S.total);$('fill').style.width=Math.min(100,S.total/costV()*100)+'%';
+  $('upV').disabled=S.total<costV();$('upC').disabled=chance()>=MAXCH||S.total<costC();$('upA').disabled=S.total<costA()}
+function tick(){if(document.hidden)return;var g=idle();qCheck();
+  if(g){if(cur==='game')lite();else if(Date.now()-lastPtr>800)render();
+    if(Date.now()-lastSave>5000){lastSave=Date.now();save()}}
+  if(Date.now()-lastMk>=2500){lastMk=Date.now();mkStep()}
+  upd()}
+function cbLoop(){var left=1-(Date.now()-lastTap)/cbWin();if(combo&&left<=0)combo=0;
+  $('cmb').style.opacity=combo>1?1:0;$('cfill').style.width=(combo&&left>0?left*100:0)+'%';
+  if(combo&&!document.hidden)requestAnimationFrame(cbLoop);else cbRun=false}
+function cbStart(){if(!cbRun){cbRun=true;requestAnimationFrame(cbLoop)}}
+document.addEventListener('visibilitychange',function(){if(document.hidden){save();return}var g=idle();if(g)save();render()});
+function nAct(){var now=Date.now(),n=0;B.forEach(function(b){if((S.bo[b.id]||0)>now)n++});return n}
+$('upP').addEventListener('click',function(){var g=pgain();if(g<1||busy)return;
+  modal('<div class="big">⭐</div><h3>Престиж</h3><p>Получишь +'+g+' ⭐: все монеты ×'+pm(prm(S.stars+g))+' навсегда.<br>Сбросятся: монеты, номинал, улучшения, бусты и биржа.<br>Останутся: скины, достижения, статистика и звёзды.</p><button class="up" id="pgo">Сделать престиж</button><button class="reset" id="pno">Отмена</button>');
+  $('pgo').onclick=doPrestige;$('pno').onclick=function(){$('modal').hidden=true}});
+function doPrestige(){var g=pgain();if(g<1)return;
+  S.stars+=g;S.pc++;qAdd('prest',1);S.value=1;S.total=0;S.crit=0;S.auto=0;S.bo={};S.bc={};S.run=0;S.fr=0;S.mk.h={};mkInit();combo=0;
+  $('modal').hidden=true;render();save();reward({e:'⭐',t:'Престиж!',s:'+'+g+' ⭐ · все монеты ×'+pm(prm(S.stars))})}
+var MK=[
+{id:'ROCK',n:'Рок-коин',e:'🪨',base:100,vol:.006,drift:0,rev:.02,jump:0,beta:.3,alert:.04},
+{id:'WAVE',n:'Вейв',e:'🌊',base:250,vol:.02,drift:-.0003,rev:.015,jump:.004,beta:.8,alert:.07},
+{id:'NOVA',n:'Нова',e:'🚀',base:40,vol:.035,drift:-.0008,rev:.012,jump:.01,beta:1.2,alert:.09},
+{id:'MEME',n:'ПепеКоин',e:'🐸',base:3,vol:.06,drift:-.002,rev:.01,jump:.03,beta:1.6,alert:.15}
+],MKM={},MFEE=.01,lastMk=0;
+MK.forEach(function(m){MKM[m.id]=m});
+function gauss(){return(Math.random()+Math.random()+Math.random()+Math.random()-2)*1.732}
+function mkInit(){var M=S.mk;if(!M||typeof M!=='object')M=S.mk={hist:{},h:{},sel:'ROCK'};
+  M.hist=M.hist||{};M.h=M.h||{};if(!MKM[M.sel])M.sel='ROCK';
+  MK.forEach(function(m){var h=M.hist[m.id];
+    if(!Array.isArray(h)||h.length<10){h=[m.base];for(var i=1;i<60;i++){var p=h[i-1];h.push(Math.max(m.base*.05,p*Math.exp(m.vol*gauss()+m.rev*(Math.log(m.base)-Math.log(p)))))}M.hist[m.id]=h}
+    var q=M.h[m.id];if(!q||typeof q.q!=='number')M.h[m.id]={q:0,c:0}})}
+function mkPx(id){var h=S.mk.hist[id];return h[h.length-1]}
+function mkStep(){var M=S.mk,corr=Math.random()<.012,cf=corr?Math.log(1-(.05+Math.random()*.1)):0,best=null;
+  MK.forEach(function(m){var h=M.hist[m.id],p=h[h.length-1],r=m.drift+m.vol*gauss()+m.rev*(Math.log(m.base)-Math.log(p))+cf*m.beta;
+    if(m.jump&&Math.random()<m.jump)r+=(Math.random()<.5?-1:1)*(.12+Math.random()*.25);
+    var np=Math.min(m.base*20,Math.max(m.base*.05,p*Math.exp(r)));h.push(np);if(h.length>90)h.shift();
+    var ch=np/p-1;if(ch>0&&M.h[m.id].q>0){var rp=Math.round(ch*100);if(rp>S.st.mr)S.st.mr=rp}if(Math.abs(ch)>=m.alert&&(!best||Math.abs(ch)>Math.abs(best.ch)))best={m:m,ch:ch}});
+  if(best&&(cur==='mkt'||M.h[best.m.id].q>0)){var up=best.ch>0;snd('sy',up?'u':'d');
+    note('<span>'+(up?'📈':'📉')+'</span><div><b>'+best.m.id+' '+(up?'+':'−')+Math.abs(Math.round(best.ch*100))+'%</b><br>'+(corr?'Коррекция рынка':up?'Резкий рост':'Резкое падение')+'</div>')}
+  var pv=Math.round(mkPort());if(pv>S.st.mv)S.st.mv=pv;
+  if(cur==='mkt')mkUI()}
+function fp(p){return(p<10?p.toFixed(3):p<1000?p.toFixed(2):String(Math.round(p))).replace('.',',')}
+function fq(q){return q.toFixed(q<1?4:2).replace('.',',')}
+function sgn(x){return(x>=0?'+':'−')+(Math.abs(x)*100).toFixed(1).replace('.',',')+'%'}
+function mkFee(){return MFEE*(1-Math.min(.8,bonus('tr')))}
+function mkPort(){var v=0;MK.forEach(function(m){var H=S.mk.h[m.id];if(H&&H.q>0)v+=H.q*mkPx(m.id)});return v}
+function mkMsg(t,ok){var e=$('mmsg');if(!e)return;e.textContent=t;e.className='label '+(ok?'up2':'dn2')}
+function pnum2(v){var n=parseFloat(String(v||'').replace(/\s/g,'').replace(',','.'));return isFinite(n)&&n>0?n:0}
+function mkBuyAmt(spend){spend=Math.floor(spend);var m=S.mk.sel;
+  if(spend<1){mkMsg('Введи сумму от 1 🪙');return}
+  if(spend>S.total){mkMsg('Недостаточно монет: у тебя '+f(S.total)+' 🪙');return}
+  var p=mkPx(m),H=S.mk.h[m],q=spend*(1-mkFee())/p;H.q+=q;H.c+=spend;S.total-=spend;
+  var pv=Math.round(mkPort());if(pv>S.st.mv)S.st.mv=pv;
+  snd('sx','b');qAdd('trade',1);mkMsg('Куплено '+fq(q)+' '+m+' за '+f(spend)+' 🪙 (комиссия '+f(Math.ceil(spend*mkFee()))+')',1);save();render()}
+function mkBuy(pct){mkBuyAmt(Math.floor(S.total*pct/100))}
+function mkSellQty(q,all){var m=S.mk.sel,H=S.mk.h[m];
+  if(H.q<=0){mkMsg('У тебя нет позиции по '+m);return}
+  if(!(q>0)){mkMsg('Введи количество');return}
+  if(q>H.q*1.000001){mkMsg('Столько нет: у тебя '+fq(H.q)+' '+m);return}
+  if(q>H.q||all)q=H.q;
+  var get=Math.floor(q*mkPx(m)*(1-mkFee())),cost=H.c*(q/H.q);H.q-=q;H.c-=cost;if(all||H.q<1e-9){H.q=0;H.c=0}
+  S.total+=get;var pl=Math.round(get-cost),pc=cost>0?(get/cost-1)*100:0;S.st.mk+=pl;
+  if(pl>0){S.st.mw++;S.st.mb=Math.max(S.st.mb,Math.round(pc));qAdd('mprofit',pl)}
+  snd('sx',pl>=0?'s':'l');qAdd('trade',1);mkMsg('Продано '+fq(q)+' '+m+' → '+f(get)+' 🪙 ('+(pl>=0?'+':'−')+f(Math.abs(pl))+')',pl>=0);save();render()}
+function mkSell(pct){var H=S.mk.h[S.mk.sel];mkSellQty(H.q*pct/100,pct>=100)}
+function mkUI(){var M=S.mk,m=M.sel,h=M.hist[m],p=h[h.length-1],H=M.h[m],ch=p/(h[h.length-2]||p)-1,w=p/h[0]-1,fe=mkFee();
+  $('mbal').textContent=f(S.total);$('mpx').textContent=fp(p)+' 🪙';$('mfee').textContent=String(+(fe*100).toFixed(2)).replace('.',',')+'%';
+  $('mchg').textContent=sgn(ch)+' за шаг · '+sgn(w)+' за весь график';$('mchg').className=ch>=0?'up2':'dn2';
+  if(H.q>0){var val=H.q*p*(1-fe),pl=Math.round(val-H.c);
+    $('mpos').textContent='Держишь '+fq(H.q)+' '+m+' ≈ '+f(Math.floor(val))+' 🪙 · ср. цена '+fp(H.c/H.q)+' · '+(pl>=0?'+':'−')+f(Math.abs(pl))+' 🪙 ('+sgn(H.c?val/H.c-1:0)+')'}
+  else $('mpos').textContent='Позиции по '+m+' нет';
+  $('mbi').placeholder='Сумма в 🪙 (макс '+f(S.total)+')';$('msi').placeholder='Кол-во (макс '+fq(H.q)+')';
+  MK.forEach(function(x){var hh=M.hist[x.id],b=$('mb-'+x.id),c10=hh[hh.length-1]/hh[Math.max(0,hh.length-11)]-1;
+    b.textContent=x.e+' '+x.id+' '+sgn(c10);b.className=x.id===m?'on':''});
+  Array.prototype.forEach.call($('mbuy').children,function(b){b.disabled=Math.floor(S.total*+b.dataset.id/100)<1});
+  Array.prototype.forEach.call($('msell').children,function(b){b.disabled=H.q<=0});
+  mkDraw()}
+function mkDraw(){var cv=$('mch');if(!cv)return;var g=cv.getContext('2d'),m=S.mk.sel,h=S.mk.hist[m],W=320,Hh=180,pd=14,n=h.length;
+  g.setTransform(2,0,0,2,0,0);g.clearRect(0,0,W,Hh);
+  var mn=Math.min.apply(null,h),mx=Math.max.apply(null,h);if(mx-mn<1e-9){mx+=1;mn-=1}var rg=mx-mn;mn-=rg*.08;mx+=rg*.08;
+  var col=h[n-1]>=h[0]?'#2e9e4f':'#d9534f';
+  function X(i){return pd+(W-2*pd)*i/(n-1)}function Y(v){return Hh-pd-(Hh-2*pd)*(v-mn)/(mx-mn)}
+  g.beginPath();h.forEach(function(v,i){if(i)g.lineTo(X(i),Y(v));else g.moveTo(X(i),Y(v))});
+  g.lineWidth=2;g.lineJoin='round';g.strokeStyle=col;g.stroke();
+  g.lineTo(X(n-1),Hh-pd);g.lineTo(X(0),Hh-pd);g.closePath();
+  var gr=g.createLinearGradient(0,0,0,Hh);gr.addColorStop(0,col+'55');gr.addColorStop(1,col+'00');g.fillStyle=gr;g.fill();
+  var P=S.mk.h[m];if(P.q>0){var a=P.c/P.q;if(a>mn&&a<mx){g.setLineDash([4,4]);g.strokeStyle='#f2a900';g.lineWidth=1;g.beginPath();g.moveTo(pd,Y(a));g.lineTo(W-pd,Y(a));g.stroke();g.setLineDash([])}}
+  g.fillStyle=col;g.beginPath();g.arc(X(n-1),Y(h[n-1]),3.5,0,7);g.fill()}
+$('mcs').innerHTML=MK.map(function(m){return'<button id="mb-'+m.id+'" data-a="ms" data-id="'+m.id+'"></button>'}).join('');
+$('mbuy').innerHTML=[25,50,100].map(function(v){return'<button data-a="mbuy" data-id="'+v+'">'+v+'%</button>'}).join('');
+$('msell').innerHTML=[25,50,100].map(function(v){return'<button data-a="msell" data-id="'+v+'">'+v+'%</button>'}).join('');
+function cw(c){return[Math.max(10,c['w'][0]-luck()),c['w'][1]]}
+function luck(){return bonus('lk')}
+function cbWin(){return 900*(1+bonus('cb'))}
+var RSB=[{inc:.02,lk:0},{inc:.04,lk:1},{inc:.07,lk:2},{inc:.12,lk:3},{inc:.2,lk:5}];
+function coll(){var inc=0,lk=0,n=0;
+  RN.forEach(function(_,i){var all=SK.filter(function(s){return s.r===i&&s.id!=='classic'}),have=all.filter(function(s){return S.own.indexOf(s.id)>-1});
+    n+=have.length;if(all.length&&have.length===all.length){inc+=RSB[i].inc;lk+=RSB[i].lk}});
+  return{inc:inc+.003*n,lk:lk,n:n}}
+function bonus(k){var v=(skin().bn||{})[k]||0;if(k==='inc')v+=coll().inc;if(k==='lk')v+=coll().lk;return v}
+function bonusText(b){var a=[];if(b.jp)a.push('Джекпот +'+pm(b.jp)+'%');if(b.inc)a.push('Монеты +'+Math.round(b.inc*100)+'%');if(b.cb)a.push('Окно комбо +'+Math.round(b.cb*100)+'%');if(b.lk)a.push('Удача сундуков +'+b.lk);if(b.pk)a.push('Плинко +'+Math.round(b.pk*100)+'%');if(b.tr)a.push('Комиссия −'+Math.round(b.tr*100)+'%');if(b.au)a.push('Автокликер +'+Math.round(b.au*100)+'%');return a.join(' · ')||'Без бонусов'}
+var UC={
+plinko:{t:'Выбей ×25 в Плинко',f:function(){return S.st.pj>=1},pr:function(){return Math.min(S.st.pj,1)+'/1'}},
+star:{t:'Сделай 3 престижа',f:function(){return S.pc>=3},pr:function(){return Math.min(S.pc,3)+'/3'}},
+tycoon:{t:'Заработай 500 000 🪙 на бирже',f:function(){return S.st.mk>=500000},pr:function(){return f(Math.max(0,Math.min(S.st.mk,500000)))+'/500 000'}}};
+function srcText(x){var a=[];if(x.p)a.push('Магазин: '+f(x.p)+' 🪙');
+  var cs=C.filter(function(c){return c.pool.indexOf(x.id)>-1}).map(function(c){return c.n.replace(' сундук','')});
+  if(cs.length)a.push('Сундуки: '+cs.join(', '));if(x.id==='ultra')a.push('Алмазный сундук (0,5%)');
+  if(x.tk)a.push('Жетоны: '+f(x.tk)+' 🎟️');if(x.uc)a.push(UC[x.uc].t);if(x.ua)a.push('Награда: «'+AM[x.ua].n+'»');return a.join(' · ')}
+function giveR(r,nm){var L=[],o={e:'🏆',t:nm,s:''};
+  if(r.c){S.total+=r.c;L.push('+'+f(r.c)+' монет')}
+  if(r.tk){S.tk+=r.tk;L.push('+'+r.tk+' 🎟️')}
+  if(r.sk){var k=SKM[r.sk];if(S.own.indexOf(r.sk)<0)S.own.push(r.sk);L.push('скин «'+k.n+'»');o.e=k.b;o.k=k.r>=3?'u':'s'}
+  if(r.ch){var q=roll(CM[r.ch]);L.push(q.t);o.e=q.e;if(q.k==='u'||(q.k==='s'&&o.k!=='u'))o.k=q.k}
+  o.s=L.join(' · ');return o}
+var rsub='d',QD={d:864e5,w:6048e5,m:2592e6},QN={d:3,w:4,m:5},QT={d:'Ежедневные',w:'Еженедельные',m:'Ежемесячные'},QBON={d:{ch:'silver'},w:{ch:'gold'},m:{ch:'diamond',tk:150}};
+function scl(){return Math.max(1,S.value)}
+var QP={
+d:[['tap','Сделай {n} тапов',200,4],['earn','Заработай {n} монет',function(){return 1500*scl()},4],['jp','Поймай джекпот',1,5],['bonus','Поймай {n} бонусов',10,3],['combo','Набери комбо {n}',15,3],['chest','Открой {n} сундука',2,4],['boost','Активируй {n} буста',2,3],['pball','Брось {n} шариков в Плинко',20,3],['trade','Соверши {n} сделки на бирже',3,4],['upg','Купи {n} улучшения',3,3]],
+w:[['tap','Сделай {n} тапов',3000,22],['earn','Заработай {n} монет',function(){return 60000*scl()},22],['jp','Поймай {n} джекпотов',8,25],['combo','Набери комбо {n}',40,20],['chest','Открой {n} сундуков',15,25],['pball','Брось {n} шариков в Плинко',300,20],['pwin','Выиграй в Плинко {n} раз (множитель больше ×1)',100,20],['trade','Соверши {n} сделок на бирже',20,22],['mprofit','Заработай {n} монет профита на бирже',function(){return 5000*scl()},25],['upg','Купи {n} улучшений',15,20],['days','Заходи в игру {n} дня',4,25]],
+m:[['tap','Сделай {n} тапов',30000,120],['earn','Заработай {n} монет',function(){return 1500000*scl()},120],['jp','Поймай {n} джекпотов',60,120],['combo','Набери комбо {n}',100,100],['chest','Открой {n} сундуков',80,150],['pball','Брось {n} шариков в Плинко',2500,100],['trade','Соверши {n} сделок на бирже',200,120],['mprofit','Заработай {n} монет профита на бирже',function(){return 100000*scl()},150],['prest','Сделай престиж',1,200],['upg','Купи {n} улучшений',100,100],['days','Заходи в игру {n} дней',20,150]]};
+function qGen(p){var pool=QP[p].slice(),list=[];
+  while(list.length<QN[p]&&pool.length){var e=pool.splice(Math.floor(Math.random()*pool.length),1)[0],t=Math.round(typeof e[2]==='function'?e[2]():e[2]),r={tk:e[3]};
+    if(p==='w')r.ch=Math.random()<.5?'silver':'wood';if(p==='m')r.ch=Math.random()<.5?'gold':'silver';
+    list.push({k:e[0],d:e[1].replace('{n}',f(t)),t:t,p:0,cl:0,r:r})}
+  return{end:Date.now()+QD[p],list:list,bonus:0}}
+function qInit(){if(!S.q||typeof S.q!=='object')S.q={};['d','w','m'].forEach(function(p){var q=S.q[p];if(!q||!Array.isArray(q.list)||!q.end)S.q[p]=qGen(p)})}
+function qCheck(){var now=Date.now(),ch=false;if(!S.q)return;
+  ['d','w','m'].forEach(function(p){if(!S.q[p]||now>=S.q[p].end){S.q[p]=qGen(p);ch=true}});
+  if(S.ld!==today()){S.ld=today();qAdd('days',1);ch=true}
+  if(ch){save();if(cur==='rew')render()}}
+function qAdd(k,n){if(!S.q)return;['d','w','m'].forEach(function(p){var q=S.q[p];if(q)q.list.forEach(function(x){if(x.k===k&&!x.cl&&x.p<x.t)x.p=Math.min(x.t,x.p+n)})})}
+function qMax(k,v){if(!S.q)return;['d','w','m'].forEach(function(p){var q=S.q[p];if(q)q.list.forEach(function(x){if(x.k===k&&!x.cl)x.p=Math.min(x.t,Math.max(x.p,v))})})}
+function qReady(){return S.q&&['d','w','m'].some(function(p){var q=S.q[p];return q&&(q.list.some(function(x){return x.p>=x.t&&!x.cl})||(!q.bonus&&q.list.length&&q.list.every(function(x){return x.cl})))})}
+function fmtT(ms){var s=Math.max(0,Math.floor(ms/1000)),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),c=s%60;
+  return d?d+' д '+h+' ч '+m+' мин':(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(c<10?'0':'')+c}
+function updQ(){
+  var rc=$('rsub').children,t=['🎁 Подарок'+(dstate().claimed?'':' •'),'📋 Задания'+(qReady()?' •':''),'🏆 Достижения'+(A.some(function(y){return !S.ach[y.id]&&y.g()>=y.t})?' •':'')];
+  for(var i=0;i<3;i++)if(rc[i].textContent!==t[i])rc[i].textContent=t[i];
+  if(cur!=='rew'||!S.q)return;
+  ['d','w','m'].forEach(function(p){var e=$('qtm-'+p);if(e&&S.q[p])e.textContent='до обновления: '+fmtT(S.q[p].end-Date.now())})}
+$('rsub').innerHTML=[['d','🎁 Подарок'],['q','📋 Задания'],['a','🏆 Достижения']].map(function(x){return'<button data-a="rs" data-id="'+x[0]+'">'+x[1]+'</button>'}).join('');
+function chkAch(){var ch=false;A.forEach(function(x){
+  if(S.nt[x.id])return;
+  if(S.ach[x.id]){S.nt[x.id]=1;ch=true;return}
+  if(x.g()>=x.t){S.nt[x.id]=1;ch=true;aShow(x)}});
+  if(ch)save()}
+var coin=$('coin');
+function grad(k){return'radial-gradient(circle at 35% 30%,'+k.c1+','+k.c2+')'}
+function row(e,bg,bd,n,s,btn,at){return'<div class="row"'+(at||'')+'><div class="mini" style="background:'+bg+';border-color:'+bd+'">'+e+'</div><div class="t"><b>'+n+'</b><span>'+s+'</span></div>'+btn+'</div>'}
+function render(){
+  var k=skin(),fc=$('face');
+  fc.style.background=grad(k);fc.style.borderColor=k.e;fc.style.color=k.t;fc.style.setProperty('--e',k.e);
+  $('badge').textContent=k.b;$('val').textContent=S.value;$('total').textContent=f(S.total);
+  $('fill').style.width=Math.min(100,S.total/costV()*100)+'%';
+  $('upV').textContent='Номинал '+S.value+' → '+(S.value+1)+' · '+f(costV())+' 🪙';$('upV').disabled=S.total<costV();
+  var max=chance()>=MAXCH;
+  $('upC').textContent=max?'Шанс бонуса на максимуме':'Шанс бонуса '+chance()+'% → '+(chance()+1)+'% · '+f(costC())+' 🪙';
+  $('upC').disabled=max||S.total<costC();
+  $('upA').textContent='Автокликер ('+f(acps(S.auto))+' → '+f(acps(S.auto+1))+'/с) · '+f(costA())+' 🪙';$('upA').disabled=S.total<costA();
+  var pg=pgain();$('upP').textContent=pg>0?'Престиж: +'+pg+' ⭐ (все монеты ×'+pm(prm(S.stars+pg))+')':'Престиж: '+f(S.run)+' / 100 000 заработано';$('upP').disabled=pg<1;
+  var h='';
+  if(cur==='skn'){var cb=coll();
+    $('skinfo').textContent='Коллекция '+(S.own.length-1)+'/'+(SK.length-1)+' · бонус коллекции: монеты +'+(Math.round(cb.inc*1000)/10)+'%, удача +'+cb.lk+' · жетоны: '+f(S.tk)+' 🎟️';
+    SK.forEach(function(x){var own=S.own.indexOf(x.id)>-1,on=S.skin===x.id,btn,uc=x.uc?UC[x.uc]:null;
+      if(own)btn='<button data-a="wear" data-id="'+x.id+'"'+(on?' disabled':'')+'>'+(on?'Надето':'Надеть')+'</button>';
+      else if(x.p)btn='<button data-a="buy" data-id="'+x.id+'"'+(S.total<x.p?' disabled':'')+'>'+f(x.p)+' 🪙</button>';
+      else if(x.tk)btn='<button data-a="bk" data-id="'+x.id+'"'+(S.tk<x.tk?' disabled':'')+'>'+f(x.tk)+' 🎟️</button>';
+      else if(uc&&uc.f())btn='<button data-a="uc" data-id="'+x.id+'">Забрать</button>';
+      else btn='<button disabled>🔒</button>';
+      var sub=(x.mul?'Все монеты ×'+x.mul+' · ':'')+bonusText(x.bn)+'<br>'+srcText(x)+(uc&&!own?' ('+uc.pr()+')':'');
+      h+=row(x.b||'🪙',grad(x),RC[x.r],x.n+' <span class="rb" style="background:'+RC[x.r]+'">'+RN[x.r]+'</span>',sub,btn,' style="border-color:'+RC[x.r]+'"')});$('list').innerHTML=h}
+  if(cur==='bst'){B.forEach(function(b){h+=row(b.i,'linear-gradient(180deg,#ffe07a,#f2a900)','#b57a00',b.n,b.s+' · '+b.d+' с · откат '+b.cd+' с','<button id="bt-'+b.id+'" data-a="bb" data-id="'+b.id+'"></button>')});$('bl').innerHTML=h}
+  if(cur==='chs'){C.forEach(function(c){h+=row(c.e,'linear-gradient(180deg,#ffe07a,#f2a900)','#b57a00',c.n,c.d,'<button data-a="ch" data-id="'+c.id+'"'+(S.total<c.p*cnum?' disabled':'')+'>'+(cnum>1?cnum+'× · ':'')+f(c.p*cnum)+' 🪙</button>',' data-chest="'+c.id+'"')});$('cl').innerHTML=h;Array.prototype.forEach.call($('cnum').children,function(b){b.className=+b.dataset.id===cnum?'on':''})}
+  if(cur==='rew'){
+    $('rs1').hidden=rsub!=='d';$('rs2').hidden=rsub!=='q';$('rs3').hidden=rsub!=='a';
+    Array.prototype.forEach.call($('rsub').children,function(b){b.className=b.dataset.id===rsub?'on':''});
+    if(rsub==='d'){var ds=dstate(),dh='';
+      for(var d=1;d<=7;d++)dh+='<div class="dchip'+(d<=ds.cs?' done':'')+(d===ds.next?' now':'')+'"><span>'+(d===7?'🥇':'🪙')+'</span><b>'+d+'</b></div>';
+      $('dl').innerHTML=dh;var nb=$('dbtn');nb.disabled=ds.claimed;
+      nb.textContent=ds.claimed?'Получено · приходи завтра':'Забрать день '+ds.next+' · '+(ds.next===7?'Золотой сундук':f(100*ds.next*S.value)+' 🪙')}
+    if(rsub==='q'){var qh='';
+      ['d','w','m'].forEach(function(p){var q=S.q[p];if(!q)return;
+        qh+='<div><div class="qhead"><span>'+QT[p]+'</span><span class="qt" id="qtm-'+p+'"></span></div><div class="list">';
+        q.list.forEach(function(x,i){var ok=x.p>=x.t&&!x.cl;
+          qh+=row(x.cl?'✅':ok?'🎁':'📋','linear-gradient(180deg,#ffe07a,#f2a900)','#b57a00',x.d,f(x.p)+' / '+f(x.t)+' · награда: '+rl(x.r),x.cl?'<button disabled>Получено</button>':ok?'<button data-a="qc" data-id="'+p+':'+i+'">Забрать</button>':'<button disabled>'+Math.floor(x.p/x.t*100)+'%</button>')});
+        var all=q.list.every(function(x){return x.cl});
+        qh+=row('🏁','linear-gradient(180deg,#e6b3ff,#9b5de5)','#5a2a9e','Бонус за все задания',rl(QBON[p]),q.bonus?'<button disabled>Получено</button>':all?'<button data-a="qb" data-id="'+p+'">Забрать</button>':'<button disabled>🔒</button>')+'</div></div>'});
+      $('ql').innerHTML=qh;$('tkb').textContent=f(S.tk)}
+    if(rsub==='a'){var al=A.map(function(x){var p=x.g();return{x:x,p:p,done:!!S.ach[x.id],ok:!S.ach[x.id]&&p>=x.t}}),dn=0,ah='';
+      al.forEach(function(o){if(o.done)dn++});
+      al.sort(function(a,b){return(b.ok-a.ok)||(a.done-b.done)||(b.p/b.x.t-a.p/a.x.t)});
+      al.forEach(function(o){var x=o.x,btn=o.done?'<button disabled>Получено</button>':o.ok?'<button data-a="ac" data-id="'+x.id+'">Забрать</button>':'<button disabled>'+rl(x.r)+'</button>';
+        ah+=row(o.done?'🏆':x.i,'linear-gradient(180deg,#ffe07a,#f2a900)','#b57a00',x.n,x.d+' · '+f(Math.min(o.p,x.t))+'/'+f(x.t),btn)});
+      $('al').innerHTML=ah;$('acnt').textContent='Достижения: '+dn+'/'+A.length}
+  }
+  if(cur==='set'){
+    var nm={sj:['🎰','Звук джекпота','Фанфары при джекпоте'],sb:['✨','Звук множителя','Сигнал при бонусе ×5 или ×10'],sp:['🔔','Звук ударов в Плинко','Щелчки шарика о колышки']};
+    nm.all=['🔊','Все звуки','Общий выключатель'];
+    nm.st=['🪙','Звук тапа','Чем выше комбо, тем выше тон'];
+    nm.su=['🛒','Покупки и улучшения','Звук при покупке'];
+    nm.sk=['📦','Звуки сундуков','Тряска и открытие'];
+    nm.sr=['🏆','Награды и достижения','Получение награды и уведомление о достижении'];
+    nm.sl=['🎯','Результат в Плинко','Звон при выигрыше, глухой звук при проигрыше'];
+    nm.vb=['📳','Вибрация и вспышки','Отклик на джекпот и редкий дроп'];
+    nm.sx=['💱','Биржа: сделки','Покупка и продажа'];nm.sy=['📊','Биржа: скачки цены','Резкий рост и падение'];
+    ['all','st','sj','sb','su','sk','sr','sp','sl','vb','sx','sy'].forEach(function(id){var n=nm[id];h+=row(n[0],'linear-gradient(180deg,#ffe07a,#f2a900)','#b57a00',n[1],n[2],'<button data-a="tg" data-id="'+id+'">'+(S.set[id]!==false?'🔊 Вкл':'🔇 Выкл')+'</button>')});
+    $('sl').innerHTML=h;
+    var st=S.st,SR=[['👆','Всего тапов',st.taps],['🎰','Джекпотов',st.jp],['📦','Сундуков открыто',st.ch],['🔥','Максимальное комбо',st.mc],['💰','Всего заработано',st.earned],['🧪','Бустов куплено',st.bb],['🔮','Шариков в Плинко',st.pb],['🎨','Скинов собрано',S.own.length-1],['⭐','Звёзд престижа',S.stars],['♻️','Престижей',S.pc],['📈','Итог торговли на бирже',st.mk],['🎟️','Жетонов',S.tk],['📋','Заданий выполнено',st.qd]];
+    $('stl').innerHTML=SR.map(function(r){return'<div class="dr"><span>'+r[0]+' '+r[1]+'</span><b>'+f(r[2])+'</b></div>'}).join('')}
+  if(cur==='plk'){plUI();plDraw()}
+  if(cur==='mkt')mkUI();
+  upd();
+}
+function upd(){
+  var now=Date.now(),a=[],x=fx(),k=skin(),m=x.cm*(k.mul||1);
+  B.forEach(function(b){var left=Math.ceil(((S.bo[b.id]||0)-now)/1000),cdl=Math.ceil(((S.bc[b.id]||0)-now)/1000),bt=$('bt-'+b.id);
+    if(left>0)a.push(b.i+' '+left+'с');
+    if(bt){var c=b.c*S.value,full=nAct()>=2;bt.textContent=left>0?'Активно '+left+'с':cdl>0?'Откат '+cdl+'с':full?'Лимит 2/2':f(c)+' 🪙';bt.disabled=left>0||cdl>0||full||S.total<c}});
+  $('act').textContent=a.length?'Активно '+a.length+'/2: '+a.join('   '):'';
+  var dot=!dstate().claimed||A.some(function(y){return !S.ach[y.id]&&y.g()>=y.t})||qReady();
+  $('tabs').children[4].classList.toggle('dot',dot);chkAch();updQ();
+  $('info').textContent='Бонус ×'+x.bm+': '+Math.min(100,chance()+x.cc)+'%'+(k.ch?' · Джекпот: '+pm(k.ch*x.jm)+'%':'')+(m>1?' · Монеты ×'+pm(+m.toFixed(2)):'')+(S.auto?' · Пассив +'+f(cps())+'/с':'')+(S.stars?' · ⭐'+S.stars:'');
+}
+coin.addEventListener('pointerdown',function(e){
+  var rc=coin.getBoundingClientRect(),fc=$('face');
+  coin.style.setProperty('--ry',((e.clientX-rc.left-rc.width/2)/(rc.width/2)*18)+'deg');
+  coin.style.setProperty('--rx',(-(e.clientY-rc.top-rc.height/2)/(rc.height/2)*18)+'deg');
+  coin.classList.add('down');fc.classList.remove('spin');void fc.offsetWidth;fc.classList.add('spin');
+  var k=skin(),x=fx(),gain=S.value,txt='+',col='';
+  if(k.ch&&Math.random()*100<k.ch*x.jm){gain=S.value*JP;txt='ДЖЕКПОТ +';col='#9b5de5'}
+  else if(Math.random()*100<chance()+x.cc){gain=S.value*x.bm;txt='×'+x.bm+' +';col='#e63946'}
+  var nw=Date.now();if(nw-lastTap>cbWin())combo=0;combo++;lastTap=nw;var cm=(10+Math.min(6,Math.floor(combo/10))*2)/10;gain=Math.round(gain*x.cm*(k.mul||1)*cm);S.total+=gain;S.st.taps++;S.st.earned+=gain;S.run+=gain;qAdd('tap',1);qAdd('earn',gain);qMax('combo',combo);if(col==='#9b5de5')qAdd('jp',1);else if(col)qAdd('bonus',1);if(combo>S.st.mc)S.st.mc=combo;if(col==='#9b5de5')S.st.jp++;$('ctext').textContent='Комбо '+combo+' · ×'+String(cm).replace('.',',');if(col==='#9b5de5'){snd('sj');juice(1)}else if(col)snd('sb');else snd('st');cbStart();
+  var p=document.createElement('div');p.className='pop';p.textContent=txt+f(gain);
+  if(col){p.style.color=col;p.style.fontSize='32px'}
+  p.style.left=Math.max(4,e.clientX-40)+'px';p.style.top=(e.clientY-30)+'px';document.body.appendChild(p);
+  setTimeout(function(){p.remove()},800);
+  render();save();
+});
+function rel(){coin.classList.remove('down');coin.style.setProperty('--rx','0deg');coin.style.setProperty('--ry','0deg')}
+['pointerup','pointerleave','pointercancel'].forEach(function(n){coin.addEventListener(n,rel)});
+$('upV').addEventListener('click',function(){var c=costV();if(S.total<c)return;S.total-=c;S.value++;qAdd('upg',1);snd('su');render();save()});
+$('upC').addEventListener('click',function(){var c=costC();if(S.total<c||chance()>=MAXCH)return;S.total-=c;S.crit++;qAdd('upg',1);snd('su');render();save()});
+function roll(c){var now=Date.now(),r=Math.random()*100;
+  function coins(m,t){var n=Math.round(c.p*m);S.total+=n;return{k:'c',e:'🪙',t:'+'+f(n)+' монет',s:t||'Монеты из сундука',coins:n}}
+  function dup(m,nm){var o=coins(m,'Дубликат «'+nm+'» заменён монетами');o.dup=1;return o}
+  if(c.u&&Math.random()*100<c.u){
+    if(S.own.indexOf('ultra')<0){S.own.push('ultra');return{k:'u',e:'✨',t:'АБСОЛЮТ!',s:'Ультра-скин: все монеты ×10. Надень его во вкладке «Скины»',coins:0}}
+    return dup(3,'Абсолют')}
+  if(r<cw(c)[0])return coins(.6+Math.random());
+  if(r<cw(c)[0]+cw(c)[1]){var b=B[Math.floor(Math.random()*B.length)];if((S.bo[b.id]||0)<now&&nAct()>=2)return coins(.8,'Слоты бустов заняты — выдано монетами');S.bo[b.id]=Math.max(now,S.bo[b.id]||0)+b.d*1000;return{k:'b',e:b.i,t:b.n,s:'Усиление на '+b.d+' с уже активно',coins:0}}
+  var id=c.pool[Math.floor(Math.random()*c.pool.length)];
+  if(S.own.indexOf(id)>-1)return dup(1.2,SKM[id].n);
+  S.own.push(id);
+  return{k:'s',e:SKM[id].b,t:'Скин «'+SKM[id].n+'»',s:'Новый скин в коллекции!',coins:0}}
+$('upA').addEventListener('click',function(){var c=costA();if(S.total<c)return;S.total-=c;S.auto++;qAdd('upg',1);S.lt=Date.now();snd('su');render();save()});
+function modal(h){$('mc').style.maxWidth='';$('mc').innerHTML=h;$('modal').hidden=false}
+function openChest(c){
+  if(busy||S.total<c.p)return;busy=true;S.total-=c.p;S.st.ch++;qAdd('chest',1);
+  var res=roll(c);render();save();
+  snd('sk','a');rouletteStart(c,res);
+  setTimeout(function(){
+    snd('sk','b');rareFx(res);modal('<div class="big pop2">'+res.e+'</div><h3>'+res.t+'</h3><p>'+res.s+'</p><button class="up" id="ok">Круто</button>');
+    $('ok').onclick=function(){$('modal').hidden=true;busy=false;render()};
+  },SPIN_MS);
+}
+function pct(x){return(Math.round(x*10)/10).toString().replace('.',',')+'%'}
+function showInfo(c){
+  if(busy)return;
+  var k=c.u?1-c.u/100:1,sk=100-cw(c)[0]-cw(c)[1],per=sk*k/c.pool.length,h='<div class="big">'+c.e+'</div><h3>'+c.n+'</h3><div class="drops">';
+  if(c.u)h+='<div class="dr"><span>✨ Скин «Абсолют» (все монеты ×10)</span><b>'+pct(c.u)+'</b></div>';
+  h+='<div class="dr"><span>🪙 Монеты: от '+f(Math.round(c.p*.6))+' до '+f(Math.round(c.p*1.6))+'</span><b>'+pct(cw(c)[0]*k)+'</b></div>';
+  h+='<div class="dr"><span>⚡ Случайный буст (каждый из '+B.length+' по '+pct(cw(c)[1]*k/B.length)+')</span><b>'+pct(cw(c)[1]*k)+'</b></div>';
+  c.pool.forEach(function(id){h+='<div class="dr"><span>'+SKM[id].b+' Скин «'+SKM[id].n+'»</span><b>'+pct(per)+'</b></div>'});
+  h+='</div><p>Если скин уже есть, вместо него выпадут монеты'+(luck()?'. Удача: +'+luck()+'% к шансу скинов':'')+'</p><button class="up" id="buy">Открыть'+(cnum>1?' ×'+cnum:'')+' · '+f(c.p*cnum)+' 🪙</button><button class="reset" id="cls">Закрыть</button>';
+  modal(h);
+  $('buy').disabled=S.total<c.p*cnum;
+  $('buy').onclick=function(){$('modal').hidden=true;chestGo(c)};
+  $('cls').onclick=function(){$('modal').hidden=true};
+}
+$('modal').addEventListener('click',function(e){if(e.target===this&&!busy)this.hidden=true});
+document.addEventListener('click',function(e){
+  var rw=e.target.closest('.row[data-chest]');
+  if(rw&&!e.target.closest('button')){showInfo(CM[rw.dataset.chest]);return}
+  var b=e.target.closest('button[data-a]');if(!b||b.disabled)return;
+  var a=b.dataset.a,id=b.dataset.id,now=Date.now();
+  if(a==='buy'){var k=SKM[id];if(k.p>0&&S.total>=k.p&&S.own.indexOf(id)<0){S.total-=k.p;S.own.push(id);S.skin=id;snd('su')}}
+  else if(a==='bk'){var kb=SKM[id];if(kb.tk&&S.tk>=kb.tk&&S.own.indexOf(id)<0){S.tk-=kb.tk;S.own.push(id);S.skin=id;snd('su')}}
+  else if(a==='uc'){var ku=SKM[id];if(ku.uc&&UC[ku.uc].f()&&S.own.indexOf(id)<0){S.own.push(id);S.skin=id;render();save();reward({e:ku.b,t:'Скин «'+ku.n+'»',s:'Условие выполнено, скин твой!',k:ku.r>=3?'u':'s'});return}}
+  else if(a==='qc'){var pq=id.split(':'),qq=S.q[pq[0]],qx=qq&&qq.list[+pq[1]];if(!qx||qx.cl||qx.p<qx.t)return;qx.cl=1;S.st.qd++;var rr=giveR(qx.r,qx.d);render();save();reward(rr);return}
+  else if(a==='qb'){var q2=S.q[id];if(!q2||q2.bonus||!q2.list.every(function(x){return x.cl}))return;q2.bonus=1;var rb=giveR(QBON[id],'Бонус: '+QT[id]);render();save();reward(rb);return}
+  else if(a==='rs'){rsub=id;render();return}
+  else if(a==='mba'){mkBuyAmt(pnum2($('mbi').value));return}
+  else if(a==='msq'){mkSellQty(pnum2($('msi').value));return}
+  else if(a==='msc'){var cv=pnum2($('msi').value),mm=S.mk.sel,hh=S.mk.h[mm],unit=mkPx(mm)*(1-mkFee());
+    if(!cv){mkMsg('Введи сумму в 🪙');return}if(hh.q<=0){mkMsg('У тебя нет позиции по '+mm);return}
+    if(cv>hh.q*unit*1.000001){mkMsg('Позиции хватит максимум на '+f(Math.floor(hh.q*unit))+' 🪙');return}
+    mkSellQty(Math.min(hh.q,cv/unit));return}
+  else if(a==='wear'){S.skin=id}
+  else if(a==='bb'){var bb=BM[id],c=bb.c*S.value;if(S.total>=c&&(S.bo[id]||0)<now&&(S.bc[id]||0)<now&&nAct()<2){S.total-=c;S.bo[id]=now+bb.d*1000;S.bc[id]=now+(bb.d+bb.cd)*1000;S.st.bb++;qAdd('boost',1);snd('su')}}
+  else if(a==='ch'){chestGo(CM[id]);return}
+  else if(a==='cn'){cnum=+id;render();return}
+  else if(a==='tg'){S.set[id]=S.set[id]===false;if(S.set[id]){snd(id==='all'?'su':id);if(id==='vb')juice(1)}}
+  else if(a==='ms'){S.mk.sel=id;mkMsg('');save();mkUI();return}
+  else if(a==='mbuy'){mkBuy(+id);return}
+  else if(a==='msell'){mkSell(+id);return}
+  else if(a==='pq'){var tt=S.total,nn=pnum;
+    if(id==='min')pbet=10;else if(id==='half')pbet=Math.max(1,Math.floor(pbet/2));else if(id==='dbl')pbet=pbet*2;
+    else if(id==='max')pbet=Math.max(1,Math.floor(tt/nn));else pbet=Math.max(1,Math.floor(tt*(id==='p10'?.1:.25)/nn));
+    plUI();return}
+  else if(a==='pb'){pbet=+id;plUI();return}
+  else if(a==='pn'){pnum=+id;plUI();return}
+  else if(a==='pd'){plDrop();return}
+  else if(a==='daily'){var ds=dstate();if(ds.claimed)return;var d=ds.next,res;S.daily={last:today(),streak:d};if(d<7){var n=100*d*S.value;S.total+=n;res={e:'🎁',t:'+'+f(n)+' монет',s:'День '+d+' из 7'}}else{res=roll(CM.gold);res.s='День 7! '+res.s}render();save();reward(res);return}
+  else if(a==='ac'){var x=AM[id];if(S.ach[id]||x.g()<x.t)return;S.ach[id]=1;var r2=giveR(x.r,x.n);render();save();reward(r2);return}
+  render();save();
+});
+$('tabs').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-t]');if(!b)return;
+  cur=b.dataset.t;
+  ['game','bst','chs','skn','rew','plk','mkt','set'].forEach(function(n){$(n).hidden=n!==cur});
+  Array.prototype.forEach.call($('tabs').children,function(x){x.className=x.dataset.t===cur?'on':''});
+  render();
+});
+var armed=false;
+$('reset').addEventListener('click',function(){
+  if(!armed){armed=true;$('reset').textContent='Точно сбросить всё?';setTimeout(function(){armed=false;$('reset').textContent='Сначала'},3000);return}
+  armed=false;S=fresh();mkInit();$('reset').textContent='Сначала';render();save();
+});
+var AC=null;
+function initAudio(){try{if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume()}catch(e){}}
+function tone(fr,at,d,ty,v){var o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime+at;o.type=ty;o.frequency.value=fr;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02)}
+function snd(k,v){if(!S.set||S.set[k]===false||S.set.all===false)return;initAudio();if(!AC)return;try{
+  if(k==='sj')[523,659,784,1047,1319].forEach(function(fr,i){tone(fr,i*.08,.25,'triangle',.22)});
+  else if(k==='sb'){tone(880,0,.14,'sine',.2);tone(1175,.09,.2,'sine',.2)}
+  else if(k==='sp')tone(520+Math.random()*520,0,.05,'sine',.1);
+  else if(k==='st')tone(600+Math.min(combo,60)*12,0,.05,'triangle',.07);
+  else if(k==='su'){tone(988,0,.08,'square',.06);tone(1319,.07,.12,'square',.06)}
+  else if(k==='sr'){(v==='a'?[659,784,988,1319]:[523,659,784]).forEach(function(fr,i){tone(fr,i*.1,.22,'triangle',.2)})}
+  else if(k==='sk'){if(v==='t')tone(1000,0,.03,'triangle',.08);else if(v==='a')[140,120,140,120,150].forEach(function(fr,i){tone(fr,i*.1,.12,'sawtooth',.12)});else[660,880,1100,1320].forEach(function(fr,i){tone(fr,i*.07,.2,'sine',.18)})}
+  else if(k==='sx'){if(v==='b'){tone(660,0,.08,'square',.07);tone(880,.07,.1,'square',.07)}else if(v==='s'){[784,988,1319].forEach(function(fr,i){tone(fr,i*.07,.12,'triangle',.18)})}else{tone(330,0,.14,'sawtooth',.1);tone(220,.1,.2,'sawtooth',.1)}}
+  else if(k==='sy'){if(v==='u')[523,659,784,1047].forEach(function(fr,i){tone(fr,i*.06,.14,'sine',.16)});else[600,480,360,240].forEach(function(fr,i){tone(fr,i*.07,.16,'sawtooth',.1)})}
+  else if(k==='sl'){if(v>1){tone(700,0,.1,'sine',.15);tone(900,.07,.14,'sine',.15)}else tone(180,0,.12,'sine',.12)}
+  }catch(e){}}
+var PM=[25,4,1.2,.4,.2,.4,1.2,4,25],PB=[10,100,1000,10000,100000,1000000,10000000],PN=[1,5,10,25];
+var pbet=100,pnum=1,balls=[],pflash={},sflash={},plres=[],batch={left:0,cost:0,win:0},lastTick=0,plRun=false,plUntil=0;
+$('pbet').innerHTML=PB.map(function(v){return'<button data-a="pb" data-id="'+v+'">'+f(v)+'</button>'}).join('');
+$('pnum').innerHTML=PN.map(function(v){return'<button data-a="pn" data-id="'+v+'">'+v+'</button>'}).join('');
+$('pq').innerHTML=[['min','Мин'],['half','½'],['dbl','×2'],['p10','10%'],['p25','25%'],['max','Макс']].map(function(q){return'<button data-a="pq" data-id="'+q[0]+'">'+q[1]+'</button>'}).join('');
+function pm(m){return String(m).replace('.',',')}
+function plUI(){
+  var cost=pbet*pnum;
+  $('pbal').textContent=f(S.total);
+  $('pdrop').textContent='Бросить '+pnum+' × '+f(pbet)+' = '+f(cost)+' 🪙';
+  $('pdrop').disabled=S.total<cost||balls.length>80;
+  Array.prototype.forEach.call($('pbet').children,function(b){var v=+b.dataset.id;b.className=v===pbet?'on':'';b.style.display=(v>S.total&&v>100)?'none':''});
+  Array.prototype.forEach.call($('pnum').children,function(b){b.className=+b.dataset.id===pnum?'on':''});
+  $('plr').innerHTML=plres.map(function(r){return'<span class="pill '+(r.m>=25?'j':r.m>1?'w':'l')+'">×'+pm(r.m)+'</span>'}).join('');
+}
+function mkBall(t,bet){var p=[],k=0,x=160,w=[{x:160,y:8},{x:160,y:31}];
+  for(var i=0;i<8;i++){var r=Math.random()<.5;p.push(r);if(r)k++;x+=r?16:-16;w.push({x:x,y:i<7?40+(i+1)*30-9:304})}
+  return{p:p,k:k,w:w,s:0,ts:t,bet:bet,x:160,y:8,vis:false}}
+function plDrop(){var cost=pbet*pnum;if(S.total<cost)return;initAudio();S.total-=cost;
+  if(!batch.left)batch={left:0,cost:0,win:0};
+  batch.left+=pnum;batch.cost+=cost;S.st.pb+=pnum;qAdd('pball',pnum);
+  var now=performance.now();
+  for(var i=0;i<pnum;i++)balls.push(mkBall(now+i*140,pbet));
+  $('psum').textContent='';save();plUI();plStart()}
+function hit(b,now){var r=b.s-1,j=0;for(var q=0;q<r;q++)if(b.p[q])j++;pflash[r+','+j]=now;if(now-lastTick>35){lastTick=now;snd('sp')}}
+function land(b,now){var m=PM[b.k],win=Math.round(b.bet*m*(1+bonus('pk')));snd('sl',m);if(m>=25){juice(1);S.st.pj++}if(win>S.st.pw)S.st.pw=win;if(m>1)qAdd('pwin',1);S.total+=win;sflash[b.k]=now;plUntil=now+500;
+  plres.unshift({m:m});if(plres.length>12)plres.pop();
+  batch.win+=win;batch.left--;
+  if(batch.left<=0){var d=batch.win-batch.cost;$('psum').textContent='Итог: '+(d>=0?'+':'−')+f(Math.abs(d))+' 🪙 (выиграно '+f(batch.win)+' из '+f(batch.cost)+')';batch.left=0}
+  save();plUI()}
+function plStep(now){
+  for(var i=balls.length-1;i>=0;i--){var b=balls[i];
+    if(now<b.ts){b.vis=false;continue}
+    b.vis=true;var D=b.s?150:220,fin=false;
+    while(now-b.ts>=D){b.ts+=D;b.s++;D=150;if(b.s>=9){fin=true;break}hit(b,now)}
+    if(fin){balls.splice(i,1);land(b,now);continue}
+    var e=(now-b.ts)/D,a=b.w[b.s],c=b.w[b.s+1];
+    b.x=a.x+(c.x-a.x)*e;
+    b.y=b.s?a.y+(c.y-a.y)*e-8*Math.sin(Math.PI*e):a.y+(c.y-a.y)*e*e;
+  }}
+function plLoop(){var n=performance.now();plStep(n);plDraw();if(balls.length||n<plUntil)requestAnimationFrame(plLoop);else plRun=false}
+function plStart(){if(!plRun){plRun=true;requestAnimationFrame(plLoop)}}
+function plFlush(){balls.splice(0).forEach(function(b){land(b,performance.now())})}
+document.addEventListener('visibilitychange',function(){if(document.hidden)plFlush()});
+window.addEventListener('pagehide',plFlush);
+function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+function plDraw(){
+  var cv=$('pc');if(!cv)return;
+  var g=cv.getContext('2d'),cs=getComputedStyle(document.documentElement),mu=cs.getPropertyValue('--muted').trim()||'#8a7a52',now=performance.now(),k=skin();
+  g.setTransform(2,0,0,2,0,0);g.clearRect(0,0,320,340);
+  for(var s=0;s<9;s++){var x=160+(s-4)*32,m=PM[s],col=m>=25?'#9b5de5':m>=4?'#f2a900':m>1?'#3aa655':'#d9534f',fl=sflash[s]&&now-sflash[s]<400;
+    g.globalAlpha=fl?1:.8;g.fillStyle=col;rr(g,x-15,290,30,30,8);g.fill();g.globalAlpha=1;
+    g.fillStyle='#fff';g.font='bold 11px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('×'+pm(m),x,305)}
+  for(var r=0;r<8;r++)for(var j=0;j<=r;j++){var px=160+(j-r/2)*32,py=40+r*30,ft=pflash[r+','+j],hot=ft&&now-ft<180;
+    g.fillStyle=hot?'#ffd54a':mu;g.beginPath();g.arc(px,py,hot?5:3.5,0,7);g.fill()}
+  balls.forEach(function(b){if(!b.vis)return;var gr=g.createRadialGradient(b.x-2,b.y-2,1,b.x,b.y,7);gr.addColorStop(0,k.c1);gr.addColorStop(1,k.c2);g.fillStyle=gr;g.beginPath();g.arc(b.x,b.y,6.5,0,7);g.fill();g.lineWidth=1.5;g.strokeStyle=k.e;g.stroke()});
+}
+(function(){var t=$('tabs'),sx=0,sl=0,id=null,dr=false;
+  t.addEventListener('pointerdown',function(e){id=e.pointerId;sx=e.clientX;sl=t.scrollLeft;dr=false});
+  t.addEventListener('pointermove',function(e){if(e.pointerId!==id)return;var dx=e.clientX-sx;
+    if(!dr&&Math.abs(dx)>6){dr=true;try{t.setPointerCapture(id)}catch(x){}}
+    if(dr)t.scrollLeft=sl-dx});
+  function end(e){if(e.pointerId===id){id=null;setTimeout(function(){dr=false},60)}}
+  t.addEventListener('pointerup',end);t.addEventListener('pointercancel',end);
+  t.addEventListener('click',function(e){if(dr){e.stopPropagation();e.preventDefault()}},true);
+})();
+setInterval(tick,500);
+mkInit();qInit();qCheck();idle();render();
+</script>
+</body>
+</html>
